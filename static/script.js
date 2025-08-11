@@ -81,7 +81,7 @@ function initializeTimeframeSummary() {
 function setupEventListeners() {
     form.addEventListener('submit', handleAddTransaction);
     [typeIncomeRadio, typeExpenseRadio].forEach(r => r.addEventListener('change', updateCategories));
-    ['toggle-income', 'toggle-expense', 'apply-filter', 'clear-filter', 'logout-btn', 'prev-page', 'next-page'].forEach(id => {
+    ['toggle-income', 'toggle-expense', 'apply-filter', 'clear-filter', 'logout-btn', 'prev-page', 'next-page', 'download-transactions-btn'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         if (id === 'toggle-income') el.addEventListener('click', () => toggleChart('income'));
@@ -91,6 +91,7 @@ function setupEventListeners() {
         else if (id === 'logout-btn') el.addEventListener('click', logout);
         else if (id === 'prev-page') el.addEventListener('click', () => changePage(currentPage - 1));
         else if (id === 'next-page') el.addEventListener('click', () => changePage(currentPage + 1));
+        else if (id === 'download-transactions-btn') el.addEventListener('click', downloadFilteredTransactions);
     });
     // User dropdown
     const userDropdownBtn = document.getElementById('user-dropdown-btn');
@@ -832,5 +833,81 @@ function updatePaginationControls() {
         pageBtn.textContent = i;
         pageBtn.addEventListener('click', () => changePage(i));
         pageNumbers.appendChild(pageBtn);
+    }
+}
+
+async function downloadFilteredTransactions() {
+    /**
+     * Download the currently filtered transactions as an Excel file
+     * Uses the same date filters that are applied to the transaction table
+     */
+    try {
+        const downloadBtn = document.getElementById('download-transactions-btn');
+        
+        // Disable button and show loading state
+        downloadBtn.disabled = true;
+        const originalText = downloadBtn.innerHTML;
+        downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Downloading...</span>';
+        
+        // Prepare filter data - use current date filter state
+        const filterData = {
+            start_date: dateFilter.startDate,
+            end_date: dateFilter.endDate
+        };
+        
+        // Make request to download endpoint
+        const response = await fetch('/api/transactions/download', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(filterData)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Download failed');
+        }
+        
+        // Get the filename from the response headers or create a default one
+        let filename = 'transactions.xlsx';
+        const contentDisposition = response.headers.get('Content-Disposition');
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch) {
+                filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+        }
+        
+        // Create blob from response and trigger download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a temporary link element to trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        // Show success message
+        let downloadMessage = 'Transactions downloaded successfully!';
+        if (dateFilter.startDate || dateFilter.endDate) {
+            downloadMessage = 'Filtered transactions downloaded successfully!';
+        }
+        showToast(downloadMessage, 'success');
+        
+    } catch (error) {
+        console.error('Download error:', error);
+        showToast(error.message || 'Failed to download transactions', 'error');
+    } finally {
+        // Re-enable button and restore original text
+        const downloadBtn = document.getElementById('download-transactions-btn');
+        downloadBtn.disabled = false;
+        downloadBtn.innerHTML = '<i class="fas fa-download"></i><span>Download Excel</span>';
     }
 }

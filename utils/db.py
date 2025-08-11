@@ -1,5 +1,7 @@
 import sqlite3
-DATABASE = 'finance.db'
+import os
+
+DATABASE = os.environ.get('DATABASE_URL', 'sqlite:///finance.db').replace('sqlite:///', '')
 
 def init_db():
     conn = sqlite3.connect(DATABASE)

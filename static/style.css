@@ -141,7 +141,6 @@
     gap: var(--space-md);
     align-items: center;
 }
-}
 
 .date-input-group label {
     font-size: 0.9rem;
@@ -1152,6 +1151,54 @@ body {
     margin-bottom: var(--space-xl);
     flex-wrap: wrap;
     gap: var(--space-lg);
+}
+
+.section-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.btn-download {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--space-lg);
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-family: var(--font-primary);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+    min-width: 140px;
+}
+
+.btn-download:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+    background: linear-gradient(135deg, #229954, #27ae60);
+}
+
+.btn-download:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(46, 204, 113, 0.3);
+}
+
+.btn-download:disabled {
+    background: var(--gray-300);
+    color: var(--gray-500);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-download i {
+    font-size: 0.9rem;
 }
 
 .date-range-filter {
