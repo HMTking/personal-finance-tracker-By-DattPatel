@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Personal Finance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        .form-group input {
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .password-input-wrapper input {
+            width: 100%;
+            padding-right: 40px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+        }
+        .password-strength {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .password-strength.weak {
+            background: #fee;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+        .password-strength.medium {
+            background: #fef5e7;
+            color: #dd6b20;
+            border: 1px solid #f6ad55;
+        }
+        .password-strength.strong {
+            background: #f0fff4;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        .password-requirements {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .password-requirements ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+        .password-requirements li {
+            margin: 0.2rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .requirement-icon {
+            font-size: 0.8rem;
+            width: 16px;
+        }
+        .requirement-met {
+            color: #22543d;
+        }
+        .requirement-not-met {
+            color: #c53030;
+        }
+        .btn-primary {
+            background: #28a745;
+            color: white;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-primary:hover {
+            background: #218838;
+        }
+        .auth-links {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .error {
+            color: red;
+            margin-bottom: 1rem;
+        }
+        .success {
+            color: green;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Create Your Finance Tracker Account</h2>
+        <div id="message"></div>
+        <form class="auth-form" id="registerForm">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="password" name="password" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div id="password-strength" class="password-strength"></div>
+                <div class="password-requirements">
+                    <p style="margin: 0.5rem 0 0.2rem 0; font-weight: 500;">Password Requirements:</p>
+                    <ul id="requirements-list">
+                        <li id="req-length">
+                            <i class="fas fa-times requirement-icon requirement-not-met"></i>
+                            At least 8 characters long
+                        </li>
+                        <li id="req-uppercase">
+                            <i class="fas fa-times requirement-icon requirement-not-met"></i>
+                            Contains uppercase letter (A-Z)
+                        </li>
+                        <li id="req-lowercase">
+                            <i class="fas fa-times requirement-icon requirement-not-met"></i>
+                            Contains lowercase letter (a-z)
+                        </li>
+                        <li id="req-number">
+                            <i class="fas fa-times requirement-icon requirement-not-met"></i>
+                            Contains number (0-9)
+                        </li>
+                        <li id="req-special">
+                            <i class="fas fa-times requirement-icon requirement-not-met"></i>
+                            Contains special character (!@#$%^&*)
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password:</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="btn-primary">Register</button>
+        </form>
+        <div class="auth-links">
+            <p>Already have an account? <a href="/login">Login here</a></p>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function checkPasswordStrength(password) {
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /\d/.test(password),
+                special: /[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]/.test(password)
+            };
+
+            const metCount = Object.values(requirements).filter(Boolean).length;
+            let strength = 'weak';
+            if (metCount >= 4) strength = 'medium';
+            if (metCount === 5) strength = 'strong';
+
+            // Update requirement indicators
+            Object.keys(requirements).forEach(req => {
+                const element = document.getElementById(`req-${req}`);
+                const icon = element.querySelector('.requirement-icon');
+                const isMet = requirements[req];
+                
+                if (isMet) {
+                    icon.classList.remove('fa-times', 'requirement-not-met');
+                    icon.classList.add('fa-check', 'requirement-met');
+                } else {
+                    icon.classList.remove('fa-check', 'requirement-met');
+                    icon.classList.add('fa-times', 'requirement-not-met');
+                }
+            });
+
+            return { strength, allMet: metCount === 5 };
+        }
+
+        function showPasswordStrength(strength) {
+            const strengthDiv = document.getElementById('password-strength');
+            strengthDiv.style.display = 'block';
+            strengthDiv.className = `password-strength ${strength}`;
+            
+            const messages = {
+                weak: 'Weak password - Please meet more requirements',
+                medium: 'Medium strength - Almost there!',
+                strong: 'Strong password - Great job!'
+            };
+            
+            strengthDiv.textContent = messages[strength];
+        }
+
+        // Password strength validation
+        document.getElementById('password').addEventListener('input', (e) => {
+            const password = e.target.value;
+            if (password.length > 0) {
+                const { strength } = checkPasswordStrength(password);
+                showPasswordStrength(strength);
+            } else {
+                document.getElementById('password-strength').style.display = 'none';
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            // Check if passwords match
+            if (data.password !== data.confirmPassword) {
+                document.getElementById('message').innerHTML = '<div class="error">Passwords do not match.</div>';
+                return;
+            }
+            
+            // Check password strength
+            const { allMet } = checkPasswordStrength(data.password);
+            if (!allMet) {
+                document.getElementById('message').innerHTML = '<div class="error">Please ensure your password meets all requirements.</div>';
+                return;
+            }
+            
+            // Remove confirmPassword from data before sending
+            delete data.confirmPassword;
+            
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                const messageDiv = document.getElementById('message');
+                
+                if (response.ok) {
+                    messageDiv.innerHTML = '<div class="success">' + result.message + '</div>';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    messageDiv.innerHTML = '<div class="error">' + result.error + '</div>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = '<div class="error">Registration failed. Please try again.</div>';
+            }
+        });
+    </script>
+</body>
+</html>

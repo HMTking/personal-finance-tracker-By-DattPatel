@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Viewport meta tag for responsive design on mobile devices -->
+    <title>Personal Finance Tracker - Manage Your Money Smartly</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   
+    <!-- External stylesheet link using Flask's url_for to generate proper URL -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- External JavaScript library for creating charts and visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Main container div to center and constrain page content -->
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-wallet"></i>
+                <span>FinanceTracker</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#dashboard" class="nav-link active"><i class="fas fa-chart-line"></i> Dashboard</a>
+                <a href="#analytics" class="nav-link"><i class="fas fa-chart-pie"></i> Analytics</a><a href="#transactions" class="nav-link"><i class="fas fa-exchange-alt"></i> Transactions</a>
+                
+            </div>
+            <div class="nav-user">
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" id="user-dropdown-btn">
+                        <i class="fas fa-user"></i>
+                        <span id="username">User</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="user-dropdown-menu">
+                        <a href="/auth/settings" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            Account Settings
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button id="logout-btn" class="dropdown-item logout-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Financial Summary Dashboard Section -->
+        <section class="summary-section" id="dashboard">
+            <div class="section-title">
+                <h2><i class="fas fa-tachometer-alt"></i> Financial Overview</h2>
+                <p>Track your financial health at a glance</p>
+            </div>
+            <!-- Grid container for summary cards showing key financial metrics -->
+            <div class="summary-cards">
+               
+                <div class="card income-card">
+                    <div class="card-icon">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Total Income</h3>
+                        <p id="total-income">₹0.00</p>
+                        <span class="card-period">
+                            <i class="fas fa-calendar-alt"></i> Current Month
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card expense-card">
+                    <div class="card-icon">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Total Expenses</h3>
+                        <p id="total-expenses">₹0.00</p>
+                        <span class="card-period">
+                            <i class="fas fa-calendar-alt"></i> Current Month
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card balance-card">
+                    <div class="card-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Current Balance</h3>
+                        <p id="current-balance">₹0.00</p>
+                        <span class="card-period">
+                            <i class="fas fa-calendar-alt"></i> Current Month
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transaction Entry Form Section -->
+        <section class="form-section">
+            <div class="section-title">
+                <h2><i class="fas fa-plus-circle"></i> Add New Transaction</h2>
+                <p>Record your income and expenses effortlessly</p>
+            </div>
+            
+            <!-- Form for adding new financial transactions -->
+            <form id="transaction-form">
+                <!-- First row of form inputs - Amount and Type -->
+                <div class="form-row">
+                    <!-- Amount input field -->
+                    <div class="form-group">
+                        <label for="amount"><i class="fas fa-rupee-sign"></i> Amount</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="amount" step="0.01" min="0" required placeholder="0.00">
+                        </div>
+                    </div>
+                    <!-- Transaction type toggle selection -->
+                    <div class="form-group">
+                        <label><i class="fas fa-tags"></i> Type</label>
+                        <div class="input-wrapper">
+                            <div class="type-toggle-wrapper">
+                                <input type="radio" id="type-income" name="type" value="income" required>
+                                <label for="type-income" class="type-toggle type-income">
+                                    <i class="fas fa-plus"></i> Income
+                                </label>
+                                <input type="radio" id="type-expense" name="type" value="expense" required>
+                                <label for="type-expense" class="type-toggle type-expense">
+                                    <i class="fas fa-minus"></i> Expense
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Second row of form inputs - Category and Date -->
+                <div class="form-row">
+                   
+                    <!-- Category selection -->
+                    <div class="form-group">
+                        <label for="category"><i class="fas fa-list"></i> Category</label>
+                        <div class="input-wrapper">
+                            <select id="category" required>
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Date input -->
+                    <div class="form-group">
+                        <label for="date"><i class="fas fa-calendar"></i> Date</label>
+                        <div class="input-wrapper">
+                            <input type="date" id="date" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Optional description field spanning full width -->
+                <div class="form-group">
+                    <label for="description"><i class="fas fa-comment"></i> Description (Optional)</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="description" placeholder="Enter transaction description...">
+                    </div>
+                </div>
+                
+                <!-- Form submission button -->
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Transaction</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- Analytics & Transaction Dashboard Section -->
+        <section class="analytics-dashboard-section" id="dashboard-analytics">
+            <!-- Unified Header with Central Filters -->
+            <div class="dashboard-header">
+                <div class="dashboard-title">
+                    <h2><i class="fas fa-chart-line"></i> Analytics & Transaction Dashboard</h2>
+                    <p>Apply filters below to analyze your financial data across time periods</p>
+                </div>
+                
+                <!-- Central Filter Panel -->
+                <div class="central-filter-panel">
+                    <div class="filter-header">
+                        <i class="fas fa-filter"></i>
+                        <span>Date Range Filter</span>
+                        <div class="filter-status" id="filter-status">
+                            <span class="status-indicator active">All Time</span>
+                        </div>
+                    </div>
+                    <div class="filter-controls">
+                        <div class="date-inputs">
+                            <div class="date-input-group">
+                                <label>From:</label>
+                                <input type="date" id="start-date" placeholder="Start Date">
+                            </div>
+                            <div class="date-input-group">
+                                <label>To:</label>
+                                <input type="date" id="end-date" placeholder="End Date">
+                            </div>
+                        </div>
+                        <div class="filter-actions">
+                            <button id="apply-filter" class="btn-apply-filter">
+                                <i class="fas fa-search"></i> Apply Filter
+                            </button>
+                            <button id="clear-filter" class="btn-clear-filter">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtered Data Summary -->
+            <div class="filtered-summary-bar">
+                <div class="summary-label">
+                    <i class="fas fa-chart-bar"></i>
+                    <span id="summary-period-label">Showing data for: All Time</span>
+                </div>
+                <div class="summary-metrics">
+                    <div class="metric-item income">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>Income:</span>
+                        <span id="timeframe-income">₹0.00</span>
+                    </div>
+                    <div class="metric-item expense">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>Expenses:</span>
+                        <span id="timeframe-expenses">₹0.00</span>
+                    </div>
+                    <div class="metric-item balance">
+                        <i class="fas fa-balance-scale"></i>
+                        <span>Net Balance:</span>
+                        <span id="timeframe-balance">₹0.00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Visualization Section -->
+        <section class="charts-section" id="analytics">
+            <div class="section-title">
+                <h2><i class="fas fa-chart-pie"></i> Financial Analytics</h2>
+                <p id="chart-filter-info">Visualizing data for the selected time period</p>
+            </div>
+            
+            <!-- Container for chart visualizations -->
+            <div class="charts-container">
+                <!-- Pie Chart for Category Breakdown -->
+                <div class="chart-box">
+                    <!-- Chart header with title and toggle buttons -->
+                    <div class="chart-header">
+                        <h3 id="pie-chart-title"><i class="fas fa-chart-pie"></i> Expenses by Category</h3>
+                        <!-- Dynamic title that changes based on selected chart type -->
+                        
+                        <!-- Toggle buttons to switch between income and expense pie charts -->
+                        <div class="chart-toggle">
+                            <button id="toggle-income" class="toggle-btn">
+                                <i class="fas fa-arrow-up"></i> Income
+                            </button>
+                            <!-- Button to show income category breakdown -->
+                            <button id="toggle-expense" class="toggle-btn active">
+                                <i class="fas fa-arrow-down"></i> Expenses
+                            </button>
+                            <!-- Button to show expense category breakdown (default active) -->
+                        </div>
+                    </div>
+                    <!-- Canvas element where Chart.js will render the pie chart -->
+                    <div class="chart-wrapper">
+                        <canvas id="pie-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Bar Chart for Overview -->
+                <div class="chart-box">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-chart-bar"></i> Financial Overview</h3>
+                    </div>
+                    <!-- Canvas element where Chart.js will render the bar chart -->
+                    <div class="chart-wrapper">
+                        <canvas id="bar-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transaction History Section -->
+        <section class="transactions-section" id="transactions">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2><i class="fas fa-list"></i> Transaction History</h2>
+                    <p id="transaction-filter-info">Showing transactions for the selected time period</p>
+                </div>
+            </div>
+
+            <!-- Table container with horizontal scrolling for mobile -->
+            <div class="table-container">
+                <!-- Transaction data table -->
+                <table id="transactions-table">
+                    <!-- Table header defining column structure -->
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-calendar"></i> Date</th>
+                            <th><i class="fas fa-tag"></i> Type</th>
+                            <th><i class="fas fa-list"></i> Category</th>
+                            <th><i class="fas fa-rupee-sign"></i> Amount</th>
+                            <th><i class="fas fa-comment"></i> Description</th>
+                            <th><i class="fas fa-cog"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-body">
+                        <!-- Transaction rows populated dynamically by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination controls -->
+            <div class="pagination-controls">
+                <div class="pagination-info">
+                    <span id="pagination-info-text">Showing 1-5 of 0 transactions</span>
+                </div>
+                <div class="pagination-buttons">
+                    <button id="prev-page" class="pagination-btn" disabled>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span id="page-numbers" class="page-numbers"></span>
+                    <button id="next-page" class="pagination-btn" disabled>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+    <!-- End of main container -->
+
+    <!-- Loading Overlay - shown during API requests -->
+    <div id="loading" class="loading hidden">
+        <!-- Loading spinner overlay that covers entire screen -->
+        <div class="spinner"></div>
+        <!-- Animated spinning circle to indicate loading state -->
+    </div>
+
+    <!-- Toast Notification System - for user feedback messages -->
+    <div id="toast" class="toast"></div>
+    <!-- Toast element for showing success/error messages, positioned fixed -->
+
+    <!-- Main JavaScript file - loaded last to ensure DOM is ready -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- Flask url_for generates proper URL for the JavaScript file -->
+</body>
+</html>
