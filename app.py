@@ -10,6 +10,25 @@ from routes.auth import bp as auth_bp
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'finance-tracker-secret-key-change-this-in-production-2025')
 
+# Initialize database when app starts (works with both direct run and gunicorn)
+with app.app_context():
+    if os.environ.get('FLASK_ENV') == 'production':
+        # Reset database in production environment
+        db_path = os.environ.get('DATABASE_URL', 'sqlite:///finance.db').replace('sqlite:///', '')
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            print(f"Removed existing database: {db_path}")
+    
+    # Ensure directory exists for database file
+    db_path = os.environ.get('DATABASE_URL', 'sqlite:///finance.db').replace('sqlite:///', '')
+    db_dir = os.path.dirname(os.path.abspath(db_path))
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+        print(f"Created database directory: {db_dir}")
+    
+    init_db()
+    print("Database initialized successfully")
+
 app.register_blueprint(transactions_bp)
 app.register_blueprint(summary_bp)
 app.register_blueprint(auth_bp)
@@ -68,13 +87,6 @@ def download_xls():
     return send_file(output, download_name='transactions.xlsx', as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 if __name__ == '__main__':
-    # Reset database in production environment
-    if os.environ.get('FLASK_ENV') == 'production':
-        import reset_db
-        reset_db.reset_database()
-    else:
-        init_db()
-    
     import os
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('FLASK_ENV', 'development') == 'development'
