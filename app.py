@@ -68,7 +68,13 @@ def download_xls():
     return send_file(output, download_name='transactions.xlsx', as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 if __name__ == '__main__':
-    init_db()
+    # Reset database in production environment
+    if os.environ.get('FLASK_ENV') == 'production':
+        import reset_db
+        reset_db.reset_database()
+    else:
+        init_db()
+    
     import os
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('FLASK_ENV', 'development') == 'development'
