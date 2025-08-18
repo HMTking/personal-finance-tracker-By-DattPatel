@@ -267,22 +267,53 @@
             
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
+            const messageDiv = document.getElementById('message');
+            
+            // Clear previous messages
+            messageDiv.innerHTML = '';
+            
+            // Basic client-side validation
+            if (!data.username.trim()) {
+                messageDiv.innerHTML = '<div class="error">Please enter a username.</div>';
+                return;
+            }
+            
+            if (data.username.trim().length < 3) {
+                messageDiv.innerHTML = '<div class="error">Username must be at least 3 characters long.</div>';
+                return;
+            }
+            
+            if (!data.email.trim()) {
+                messageDiv.innerHTML = '<div class="error">Please enter an email address.</div>';
+                return;
+            }
+            
+            if (!data.password) {
+                messageDiv.innerHTML = '<div class="error">Please enter a password.</div>';
+                return;
+            }
             
             // Check if passwords match
             if (data.password !== data.confirmPassword) {
-                document.getElementById('message').innerHTML = '<div class="error">Passwords do not match.</div>';
+                messageDiv.innerHTML = '<div class="error">Passwords do not match.</div>';
                 return;
             }
             
             // Check password strength
             const { allMet } = checkPasswordStrength(data.password);
             if (!allMet) {
-                document.getElementById('message').innerHTML = '<div class="error">Please ensure your password meets all requirements.</div>';
+                messageDiv.innerHTML = '<div class="error">Please ensure your password meets all requirements.</div>';
                 return;
             }
             
             // Remove confirmPassword from data before sending
             delete data.confirmPassword;
+            
+            // Disable submit button to prevent double submission
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating account...';
             
             try {
                 const response = await fetch('/auth/register', {
@@ -294,18 +325,24 @@
                 });
                 
                 const result = await response.json();
-                const messageDiv = document.getElementById('message');
                 
                 if (response.ok) {
-                    messageDiv.innerHTML = '<div class="success">' + result.message + '</div>';
+                    messageDiv.innerHTML = '<div class="success">' + result.message + ' Redirecting to dashboard...</div>';
                     setTimeout(() => {
                         window.location.href = '/';
-                    }, 1000);
+                    }, 1500);
                 } else {
                     messageDiv.innerHTML = '<div class="error">' + result.error + '</div>';
+                    // Re-enable button on error
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
                 }
             } catch (error) {
-                document.getElementById('message').innerHTML = '<div class="error">Registration failed. Please try again.</div>';
+                console.error('Registration error:', error);
+                messageDiv.innerHTML = '<div class="error">Connection error. Please check your internet connection and try again.</div>';
+                // Re-enable button on error
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
     </script>

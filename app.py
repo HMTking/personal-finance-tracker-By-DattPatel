@@ -2,7 +2,7 @@
 
 import os
 from flask import Flask, render_template, session, redirect, url_for, send_file
-from utils.db import init_db, get_db_connection
+from utils.db import init_db, get_db_connection, reset_database
 from routes.transactions import bp as transactions_bp
 from routes.summary import bp as summary_bp
 from routes.auth import bp as auth_bp
@@ -12,22 +12,11 @@ app.secret_key = os.environ.get('SECRET_KEY', 'finance-tracker-secret-key-change
 
 # Initialize database when app starts (works with both direct run and gunicorn)
 with app.app_context():
-    if os.environ.get('FLASK_ENV') == 'production':
-        # Reset database in production environment
-        db_path = os.environ.get('DATABASE_URL', 'sqlite:///finance.db').replace('sqlite:///', '')
-        if os.path.exists(db_path):
-            os.remove(db_path)
-            print(f"Removed existing database: {db_path}")
-    
-    # Ensure directory exists for database file
-    db_path = os.environ.get('DATABASE_URL', 'sqlite:///finance.db').replace('sqlite:///', '')
-    db_dir = os.path.dirname(os.path.abspath(db_path))
-    if db_dir and not os.path.exists(db_dir):
-        os.makedirs(db_dir)
-        print(f"Created database directory: {db_dir}")
-    
+    # Always reset database on server restart to avoid credential issues
+    print("Resetting database on server restart...")
+    reset_database()
     init_db()
-    print("Database initialized successfully")
+    print("Database initialized successfully with clean state")
 
 app.register_blueprint(transactions_bp)
 app.register_blueprint(summary_bp)
