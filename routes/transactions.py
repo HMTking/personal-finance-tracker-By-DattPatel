@@ -55,6 +55,53 @@ def delete_transaction(transaction_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@bp.route('/<int:transaction_id>', methods=['GET'])
+def get_transaction(transaction_id):
+    err = require_login()
+    if err:
+        return err
+    try:
+        transaction = Transaction.get_by_id(session['user_id'], transaction_id)
+        if not transaction:
+            return jsonify({'error': 'Transaction not found'}), 404
+        return jsonify(transaction), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/<int:transaction_id>', methods=['PUT'])
+def update_transaction(transaction_id):
+    err = require_login()
+    if err:
+        return err
+    data = request.get_json()
+    
+    # Validate required fields
+    for field in ['amount', 'category', 'type', 'date']:
+        if field not in data or not data[field]:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+    
+    # Validate transaction type
+    if data['type'] not in ['income', 'expense']:
+        return jsonify({'error': 'Type must be either income or expense'}), 400
+    
+    try:
+        updated = Transaction.update(
+            session['user_id'],
+            transaction_id,
+            float(data['amount']),
+            data['category'],
+            data['type'],
+            data['date'],
+            data.get('description', '')
+        )
+        
+        if not updated:
+            return jsonify({'error': 'Transaction not found'}), 404
+        
+        return jsonify({'message': 'Transaction updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @bp.route('/download', methods=['POST'])
 def download_filtered_transactions():
     """Download filtered transactions as Excel file"""

@@ -12,11 +12,27 @@ app.secret_key = os.environ.get('SECRET_KEY', 'finance-tracker-secret-key-change
 
 # Initialize database when app starts (works with both direct run and gunicorn)
 with app.app_context():
-    # Always reset database on server restart to avoid credential issues
-    print("Resetting database on server restart...")
-    reset_database()
-    init_db()
-    print("Database initialized successfully with clean state")
+    # Only reset database if explicitly requested via environment variable
+    if os.environ.get('RESET_DB', 'false').lower() == 'true':
+        print("RESET_DB environment variable set - Resetting database...")
+        reset_database()
+        init_db()
+        print("Database reset and initialized with clean state")
+    else:
+        # Check if database exists, if not create it
+        from utils.db import DATABASE
+        if not os.path.exists(DATABASE):
+            print("Database doesn't exist - Creating new database...")
+            init_db()
+            print("Database initialized successfully")
+        else:
+            print("Database exists - Skipping initialization")
+            # Run any pending migrations
+            try:
+                from migrate_db import migrate_database
+                migrate_database()
+            except Exception as e:
+                print(f"Migration check completed: {e}")
 
 app.register_blueprint(transactions_bp)
 app.register_blueprint(summary_bp)

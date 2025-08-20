@@ -1,5 +1,5 @@
 // Global variables to store application state and data
-let transactions = [], filteredTransactions = [], pieChart = null, barChart = null, summaryData = null, currentUser = null;
+let transactions = [], filteredTransactions = [], pieChart = null, barChart = null, summaryData = null, currentMonthSummary = null, currentUser = null;
 let currentChartType = 'expense', currentPage = 1, totalPages = 1;
 const itemsPerPage = 5, dateFilter = { startDate: null, endDate: null };
 
@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
     loadTransactions();
     loadSummary();
+    loadCurrentMonthSummary(); // Load current month summary independently
     initializeTimeframeSummary();
     updateCategories();
 });
@@ -106,6 +107,29 @@ function setupEventListeners() {
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && userDropdown) userDropdown.classList.remove('active');
     });
+    
+    // Modal event listeners
+    const editModal = document.getElementById('edit-modal');
+    const closeModal = document.getElementById('close-modal');
+    const editForm = document.getElementById('edit-transaction-form');
+    const editTypeIncomeRadio = document.getElementById('edit-type-income');
+    const editTypeExpenseRadio = document.getElementById('edit-type-expense');
+    
+    closeModal.addEventListener('click', closeEditModal);
+    editForm.addEventListener('submit', handleEditTransaction);
+    [editTypeIncomeRadio, editTypeExpenseRadio].forEach(r => r.addEventListener('change', updateEditCategories));
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', e => {
+        if (e.target === editModal) closeEditModal();
+    });
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && editModal.classList.contains('show')) {
+            closeEditModal();
+        }
+    });
 }
 
 function updateCategories() {
@@ -144,6 +168,7 @@ async function handleAddTransaction(e) {
             categorySelect.innerHTML = '<option value="">Select Category</option>';
             await loadTransactions();
             await loadSummary();
+            await loadCurrentMonthSummary(); // Refresh current month summary
         } else {
             showToast(result.error || 'Failed to add transaction', 'error');
         }
@@ -330,9 +355,14 @@ function renderTransactions() {
             <td class="${typeClass}">${typeSymbol}₹${transaction.amount.toFixed(2)}</td>
             <td>${transaction.description || '-'}</td>
             <td>
-                <button class="btn-delete" onclick="deleteTransaction(${transaction.id})">
-                    Delete
-                </button>
+                <div class="action-buttons">
+                    <button class="btn-edit" onclick="openEditModal(${transaction.id})">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn-delete" onclick="deleteTransaction(${transaction.id})">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
             </td>
         `;
         
@@ -355,6 +385,7 @@ async function deleteTransaction(id) {
             showToast('Transaction deleted successfully!', 'success');
             await loadTransactions();
             await loadSummary();
+            await loadCurrentMonthSummary(); // Refresh current month summary
         } else {
             showToast(result.error || 'Failed to delete transaction', 'error');
         }
@@ -362,6 +393,24 @@ async function deleteTransaction(id) {
         showToast('Network error. Please try again.', 'error');
     } finally {
         showLoading(false);
+    }
+}
+
+async function loadCurrentMonthSummary() {
+    /**
+     * Load current month summary data independently of any date filters
+     * This ensures the main Financial Overview cards always show current month data
+     */
+    try {
+        const response = await fetch('/api/summary/current-month');
+        currentMonthSummary = await response.json();
+        
+        // Always update the main summary cards with current month data
+        updateMainSummaryCards(currentMonthSummary);
+        
+    } catch (error) {
+        console.error('Error loading current month summary:', error);
+        showToast('Failed to load current month summary', 'error');
     }
 }
 
@@ -384,18 +433,15 @@ async function loadSummary() {
         
         // Update summary displays based on whether date filters are active
         if (dateFilter.startDate || dateFilter.endDate) {
-            // If date filters are active, calculate summary from filtered data
+            // If date filters are active, calculate summary from filtered data for charts only
             calculateFilteredSummary();
         } else {
-            // If no filters are active, use the server-provided summary data
-            updateSummaryCards(summaryData);  // Update the summary cards display
+            // If no filters are active, use the server-provided summary data for charts and timeframe
             updateCharts(summaryData);        // Update the chart visualizations
+            updateTimeframeSummary(summaryData); // Update timeframe summary bar
         }
         
-        // Always ensure timeframe summary is updated on initial load
-        if (!dateFilter.startDate && !dateFilter.endDate) {
-            updateTimeframeSummary(summaryData);
-        }
+        // Note: Main summary cards are updated independently by loadCurrentMonthSummary()
         
     } catch (error) {
         // Handle any errors that occur during the fetch operation
@@ -449,13 +495,13 @@ function calculateFilteredSummary() {
         income_by_category: incomeArray
     };
     
-    // Update displays - both main cards and timeframe cards
-    updateSummaryCards(filteredSummary);
+    // Update displays - only charts and timeframe, NOT main cards
     updateCharts(filteredSummary);
+    updateTimeframeSummary(filteredSummary);
 }
 
-function updateSummaryCards(summary) {
-    // Update main summary cards
+function updateMainSummaryCards(summary) {
+    // Update only the main summary cards (Financial Overview section)
     document.getElementById('total-income').textContent = `₹${summary.total_income.toFixed(2)}`;
     document.getElementById('total-expenses').textContent = `₹${summary.total_expenses.toFixed(2)}`;
     
@@ -468,6 +514,11 @@ function updateSummaryCards(summary) {
     } else {
         balanceElement.style.color = '#f44336';
     }
+}
+
+function updateSummaryCards(summary) {
+    // Update main summary cards
+    updateMainSummaryCards(summary);
     
     // Update timeframe summary cards
     updateTimeframeSummary(summary);
@@ -909,5 +960,120 @@ async function downloadFilteredTransactions() {
         const downloadBtn = document.getElementById('download-transactions-btn');
         downloadBtn.disabled = false;
         downloadBtn.innerHTML = '<i class="fas fa-download"></i><span>Download Excel</span>';
+    }
+}
+
+// Edit transaction functionality
+async function openEditModal(transactionId) {
+    try {
+        showLoading(true);
+        
+        // Fetch transaction details
+        const response = await fetch(`/api/transactions/${transactionId}`);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch transaction');
+        }
+        
+        const transaction = await response.json();
+        
+        // Populate modal form
+        document.getElementById('edit-transaction-id').value = transaction.id;
+        document.getElementById('edit-amount').value = transaction.amount;
+        document.getElementById('edit-date').value = transaction.date;
+        document.getElementById('edit-description').value = transaction.description || '';
+        
+        // Set transaction type
+        if (transaction.type === 'income') {
+            document.getElementById('edit-type-income').checked = true;
+        } else {
+            document.getElementById('edit-type-expense').checked = true;
+        }
+        
+        // Update categories and set selected category
+        updateEditCategories();
+        document.getElementById('edit-category').value = transaction.category;
+        
+        // Show modal
+        document.getElementById('edit-modal').classList.add('show');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        
+    } catch (error) {
+        showToast(error.message || 'Failed to load transaction details', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('show');
+    document.body.style.overflow = 'auto'; // Restore scrolling
+    document.getElementById('edit-transaction-form').reset();
+}
+
+function updateEditCategories() {
+    const editTypeIncomeRadio = document.getElementById('edit-type-income');
+    const editTypeExpenseRadio = document.getElementById('edit-type-expense');
+    const editCategorySelect = document.getElementById('edit-category');
+    
+    const selectedType = editTypeIncomeRadio.checked ? 'income' : (editTypeExpenseRadio.checked ? 'expense' : '');
+    const currentValue = editCategorySelect.value;
+    
+    editCategorySelect.innerHTML = '<option value="">Select Category</option>';
+    
+    (categories[selectedType] || []).forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        editCategorySelect.appendChild(option);
+    });
+    
+    // Restore previous selection if it exists in new categories
+    if (currentValue && categories[selectedType] && categories[selectedType].includes(currentValue)) {
+        editCategorySelect.value = currentValue;
+    }
+}
+
+async function handleEditTransaction(e) {
+    e.preventDefault();
+    
+    const transactionId = document.getElementById('edit-transaction-id').value;
+    const editTypeIncomeRadio = document.getElementById('edit-type-income');
+    const editTypeExpenseRadio = document.getElementById('edit-type-expense');
+    
+    const selectedType = editTypeIncomeRadio.checked ? 'income' : (editTypeExpenseRadio.checked ? 'expense' : '');
+    
+    const transactionData = {
+        amount: parseFloat(document.getElementById('edit-amount').value),
+        type: selectedType,
+        category: document.getElementById('edit-category').value,
+        date: document.getElementById('edit-date').value,
+        description: document.getElementById('edit-description').value
+    };
+    
+    try {
+        showLoading(true);
+        
+        const response = await fetch(`/api/transactions/${transactionId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(transactionData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Transaction updated successfully!', 'success');
+            closeEditModal();
+            await loadTransactions();
+            await loadSummary();
+            await loadCurrentMonthSummary(); // Refresh current month summary
+        } else {
+            showToast(result.error || 'Failed to update transaction', 'error');
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+    } finally {
+        showLoading(false);
     }
 }

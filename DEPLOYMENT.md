@@ -53,6 +53,12 @@ In the "Environment" section, add these variables:
 **Optional Variables:**
 
 - `PORT`: Leave empty (Render sets this automatically)
+- `RESET_DB`: Only set to `true` if you want to reset the database (DO NOT set for production!)
+
+**⚠️ IMPORTANT DATABASE SETTING:**
+
+- **DO NOT** set `RESET_DB=true` in production - this will delete all user data on every deployment!
+- Only use `RESET_DB=true` for testing/development purposes
 
 ### 6. Deploy
 

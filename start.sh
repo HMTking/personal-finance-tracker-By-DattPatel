@@ -26,31 +26,26 @@ else
     source .venv/bin/activate
 fi
 
-# Initialize database
-echo "Initializing database..."
-python init_db_script.py
+# Initialize database (only if needed)
+echo "Checking database..."
+# Database initialization is now handled in app.py
 
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "Starting Flask application..."
-    echo "Access the app at: http://localhost:$PORT"
-    echo "=================================================="
-    
-    # Start the application
-    if [ "$FLASK_ENV" = "production" ]; then
-        # Use gunicorn for production
-        if command -v gunicorn &> /dev/null; then
-            gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 app:app
-        else
-            echo "Gunicorn not found. Installing..."
-            pip install gunicorn
-            gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 app:app
-        fi
+echo ""
+echo "Starting Flask application..."
+echo "Access the app at: http://localhost:$PORT"
+echo "=================================================="
+
+# Start the application
+if [ "$FLASK_ENV" = "production" ]; then
+    # Use gunicorn for production
+    if command -v gunicorn &> /dev/null; then
+        gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 app:app
     else
-        # Use Flask development server
-        python app.py
+        echo "Gunicorn not found. Installing..."
+        pip install gunicorn
+        gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 app:app
     fi
 else
-    echo "❌ Database initialization failed. Exiting..."
-    exit 1
+    # Use Flask development server
+    python app.py
 fi
