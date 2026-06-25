@@ -1,8 +1,15 @@
 import re
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, session, render_template, redirect, url_for
 from models.user import User
+from models.transaction import Transaction
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+# Demo account credentials (read-only showcase account for the portfolio)
+DEMO_USERNAME = 'demo_user'
+DEMO_EMAIL = 'demo@example.com'
+DEMO_PASSWORD = 'Demo@1234'
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -81,6 +88,49 @@ def login():
     except Exception as e:
         print(f"Login error: {e}")
         return jsonify({'error': 'Login failed. Please try again.'}), 500
+
+@bp.route('/demo', methods=['POST'])
+def demo_login():
+    """Log in instantly with a pre-seeded demo account (no credentials needed)."""
+    try:
+        user = User.verify_user(DEMO_USERNAME, DEMO_PASSWORD)
+
+        # Create the demo user the first time it is requested
+        if not user:
+            User.create_user(DEMO_USERNAME, DEMO_EMAIL, DEMO_PASSWORD)
+            user = User.verify_user(DEMO_USERNAME, DEMO_PASSWORD)
+
+        # Seed some sample transactions so the dashboard isn't empty
+        if user and not Transaction.get_all(user['id']):
+            _seed_demo_transactions(user['id'])
+
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        return jsonify({
+            'message': 'Logged in as demo user',
+            'user': {'id': user['id'], 'username': user['username']}
+        }), 200
+    except Exception as e:
+        print(f"Demo login error: {e}")
+        return jsonify({'error': 'Could not start demo session. Please try again.'}), 500
+
+
+def _seed_demo_transactions(user_id):
+    today = datetime.now().date()
+    samples = [
+        (3200.00, 'Salary', 'income', 2, 'Monthly salary'),
+        (450.00, 'Freelance', 'income', 12, 'Freelance project'),
+        (1200.00, 'Rent', 'expense', 3, 'Apartment rent'),
+        (240.50, 'Groceries', 'expense', 5, 'Weekly groceries'),
+        (60.00, 'Transport', 'expense', 7, 'Fuel and transit'),
+        (35.99, 'Entertainment', 'expense', 9, 'Movie subscription'),
+        (120.00, 'Utilities', 'expense', 10, 'Electricity bill'),
+        (80.00, 'Dining', 'expense', 14, 'Dinner with friends'),
+    ]
+    for amount, category, type_, days_ago, description in samples:
+        tx_date = (today - timedelta(days=days_ago)).isoformat()
+        Transaction.create(user_id, amount, category, type_, tx_date, description)
+
 
 @bp.route('/logout', methods=['POST'])
 def logout():
